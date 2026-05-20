@@ -790,7 +790,13 @@ def _make_call(string):
 
 def _malloc(name, size, dtype="double"):
     # return "%s*  %s = (%s*)malloc(%s * sizeof(%s))" % (dtype, name, dtype, str(size), dtype)
-    return "%s* PRAGMA_RESTRICT %s = (%s*)ALIGNED_MALLOC(%d, %s * sizeof(%s))" % (dtype, name, dtype, ALIGN_SIZE, str(size), dtype)
+
+    # The requested memory size of ALIGNED_MALLOC must be a multiple of the alignment width.
+    # This below line rounds the size up to the next multiple of ALIGN_SIZE.
+    # (Note that the arithmetics below are performed by C and are hence integer divisions.)
+    byte_size = "(%s * sizeof(%s))" % (str(size), dtype)
+    rounded_byte_size = "(((%s + %d - 1) / %d) * %d)" % (byte_size, ALIGN_SIZE, ALIGN_SIZE, ALIGN_SIZE)
+    return "%s* PRAGMA_RESTRICT %s = (%s*)ALIGNED_MALLOC(%d, %s)" % (dtype, name, dtype, ALIGN_SIZE, rounded_byte_size)
 
 
 def _block_malloc(cg, block_name, mallocs, dtype="double"):
